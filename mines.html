@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <style>
+  <style type="text/css">
     .result {
       display: flex;
       align-items: center;
@@ -81,8 +81,6 @@
       <div class="result">
         <div :class="['result-item',mines>idx?'active':'']" v-for="(ball,idx) in resultList">{{ball}}</div>
       </div>
-      <!-- <h5>hmac_sha256(client_seed:nonce, server_seed)</h5> -->
-      <!-- <input class="form-control" readonly :value="gameResult"> -->
     </form>
   </div>
 </body>
@@ -110,16 +108,11 @@
         try {
           let resultArr = [this.client_seed, this.nonce];
           let hmacSha256Result = this.hmac_sha256(resultArr.join(":"), this.server_seed)
-          console.log(hmacSha256Result, 'hmacSha256Result')
           return this.getResult(hmacSha256Result);
         } catch (error) {
-          console.log(error, 'error')
           return []
         }
       },
-    },
-    created() {
-      console.log(this.result_hash_list)
     },
     methods: {
       hmac_sha256(msg, salt) {
@@ -146,7 +139,6 @@
         let h = this.sha256(hash).toString();
         allNums.forEach((c) => {
           nums.push({ num: c, hash: h });
-          console.log(h, '---1')
           h = h.slice(1) + h.charAt(0);
         });
 
