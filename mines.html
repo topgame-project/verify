@@ -32,6 +32,25 @@
       flex-wrap: wrap;
     }
 
+    .result-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-number-item {
+      color: #31343c;
+      margin-right: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .result-number-item.active {
+      color: #ed6300;
+    }
+
     .result-item {
       position: relative;
       box-sizing: border-box;
@@ -72,12 +91,12 @@
     <form class="py-5">
       <h2 class="text-center">Input</h2>
       <div class="form-group">
-        <label>Client Seed</label>
+        <label>Server Seed</label>
         <input :value="server_seed" @change="server_seed = $event.target.value" class="form-control"
           placeholder="Server Seed">
       </div>
       <div class="form-group">
-        <label>Server Seed</label>
+        <label>Client Seed</label>
         <input :value="client_seed" @change="client_seed = $event.target.value" class="form-control"
           placeholder="Client Seed">
       </div>
@@ -102,6 +121,10 @@
     <form class="py-5">
       <h2 class="text-center pb-5">Results</h2>
       <h5>Final Result</h5>
+      <div class="result-number">
+        <div :class="['result-number-item',mines>i?'active':'']" v-for="(resNum,i) in resultList" :key="resNum">
+          {{resNum}}</div>
+      </div>
       <div class="result">
         <div class="result-box">
           <div :class="['result-item',minesList.indexOf(ball)!=-1?'active':'']" v-for="ball in defaultNums" :key="ball">
