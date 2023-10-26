@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -19,25 +20,28 @@
       display: flex;
       align-items: center;
     }
+
     .cards-list .card {
       margin-right: 20px;
     }
+
     .card.red {
       color: #f00;
     }
   </style>
 </head>
+
 <body>
   <div id="app"></div>
   <script type="text/babel">
     let qs = tools.queryString();
     let { useEffect, useMemo } = React;
     const { useSetState } = hooks;
-    function useInputControl (initState) {
+    function useInputControl(initState) {
       const [state, setState] = useSetState(initState);
       const bind = key => ({
         value: state[key],
-        onChange: v => setState({[key]: v})
+        onChange: v => setState({ [key]: v })
       });
       return [
         state,
@@ -45,7 +49,7 @@
         bind
       ];
     }
-    function Input ({value, onChange, ...others}) {
+    function Input({ value, onChange, ...others }) {
       return (
         <div class="form-group">
           <input value={value}
@@ -64,12 +68,12 @@
       165, 184, 203, 211, 166, 204, 185,
     ];
 
-    function createCards (hash, times, cards, hashList) {
+    function createCards(hash, times, cards, hashList) {
       hashList.push(hash);
       if (times <= 0) return
       let h = hash;
       allNums.forEach((c) => {
-        cards.push({card: c, hash: h});
+        cards.push({ card: c, hash: h });
         h = h.substring(1) + h.charAt(0);
       });
 
@@ -78,7 +82,7 @@
       createCards(hash, times, cards, hashList);
     }
 
-    function create (hash, times) {
+    function create(hash, times) {
       times = times || 2;
       let cards = [];
       let hashList = [];
@@ -95,22 +99,22 @@
       return cards;
     }
 
-    function canBankerGetCard (point, palyerPoint, thirdCardPoint) {
-      if(palyerPoint >= 8) return false;
-      if(point <= 2) return true;
-      else if(point === 3) {
-        return thirdCardPoint !=8 ;
-      } else if(point === 4) {
+    function canBankerGetCard(point, palyerPoint, thirdCardPoint) {
+      if (palyerPoint >= 8) return false;
+      if (point <= 2) return true;
+      else if (point === 3) {
+        return thirdCardPoint != 8;
+      } else if (point === 4) {
         return [0, 1, 8, 9].indexOf(thirdCardPoint) < 0;
-      } else if(point === 5) {
+      } else if (point === 5) {
         return [0, 1, 2, 3, 8, 9].indexOf(thirdCardPoint) < 0;
-      } else if(point === 6) {
+      } else if (point === 6) {
         return [6, 7].indexOf(thirdCardPoint) >= 0;
       }
       return false;
     }
 
-    function getPoint (list) {
+    function getPoint(list) {
       const result = list.reduce((pre, item) => {
         const currPoint = item.pointNum > 10 ? 10 : item.pointNum;
         return pre + currPoint;
@@ -118,7 +122,7 @@
       return result % 10;
     }
 
-    function getRestlt (hash) {
+    function getRestlt(hash) {
       let beginHash = String(tools.sha256(hash));
       const resultList = create(beginHash);
       return resultList.map((m) => m.card);
@@ -145,11 +149,11 @@
       return ((suit + 10) << 4) + point;
     }
 
-    function BaccaratSingle () {
+    function BaccaratSingle() {
       const [state, setState, bind] = useInputControl({
-        clientSeed: qs.c||'',
-        serverSeed: qs.s||'',
-        nonce: qs.n||''
+        clientSeed: qs.c || '',
+        serverSeed: qs.s || '',
+        nonce: qs.n || ''
       });
 
       const result = useMemo(() => {
@@ -163,12 +167,12 @@
         const bankerPoint = getPoint(banker);
         const isPlayerGetCard = palyerPoint % 10 < 6;
         const isBankerEnd = bankerPoint % 10 >= 8;
-        if(isPlayerGetCard && !isBankerEnd) {
-          player.push(new Card(resultList[4]));
+        if (isPlayerGetCard && !isBankerEnd) {
+          player.push(createCardFram(resultList[4]));
         }
         const thirdCardPoint = player[2] ? getPoint([player[2]]) % 10 : -1;
         const flag = canBankerGetCard(bankerPoint % 10, palyerPoint % 10, thirdCardPoint);
-        if(flag) banker.push(isPlayerGetCard ? createCardFram(resultList[5]) : createCardFram(resultList[4]));
+        if (flag) banker.push(isPlayerGetCard ? createCardFram(resultList[5]) : createCardFram(resultList[4]));
         const playerPointFinal = getPoint(player);
         const bankerPointFinal = getPoint(banker);
         return {
@@ -180,10 +184,10 @@
 
         }
       }, [state]);
-      const {player, banker, playerPointFinal, bankerPointFinal} = result;
+      const { player, banker, playerPointFinal, bankerPointFinal } = result;
       return (
         <div className="main">
-          <h1 className="text-center pb-5">Baccarat single verify</h1> 
+          <h1 className="text-center pb-5">Baccarat single verify</h1>
           <hr />
           <h2 class="text-center">Input</h2>
           <form className="py-5">
@@ -194,13 +198,13 @@
           <h2 class="text-center">Output</h2>
           <form className="py-5">
             <Input placeholder="HmacSHA256(clientSeed, serverSeed)" readOnly value={result.hmacSha256Result} />
-            <h5 style={{marginTop: 20}}>Result</h5>
+            <h5 style={{ marginTop: 20 }}>Result</h5>
             <div className="result-list">
               <div className="player-cards">
                 <p>Player: {playerPointFinal % 10}</p>
                 <div className="cards-list">
                   {player.map((item, index) => {
-                    const clname = "result-card-item" + (index+1);
+                    const clname = "result-card-item" + (index + 1);
                     return (
                       <div className={clname + " card " + item.style} key={item.pointNum + "-" + index}>
                         <div className="flower">{item.suits}</div>
@@ -214,7 +218,7 @@
                 <p>Banker: {bankerPointFinal % 10}</p>
                 <div className="cards-list">
                   {banker.map((item, index) => {
-                    const clname = "result-card-item" + (index+1);
+                    const clname = "result-card-item" + (index + 1);
                     return (
                       <div className={clname + " card " + item.style} key={item.pointNum + "-" + index}>
                         <div className="flower">{item.suits}</div>
@@ -232,4 +236,5 @@
     ReactDOM.render(<BaccaratSingle />, document.getElementById("app"));
   </script>
 </body>
+
 </html>
