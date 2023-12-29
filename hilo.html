@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hilo Verify</title>
+  <link rel="stylesheet" href="./lib/main.css">
+  <link rel="stylesheet" href="./lib/bootstrap/css/bootstrap.min.css">
+  <style>
+    .round-item {
+      margin-bottom: 10px;
+    }
+
+    .round-item p {
+      margin: 4px 0;
+    }
+
+    .round-item .t {
+      font-weight: bold;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .round-item h6 {
+      margin: 0;
+      margin-bottom: 8px;
+    }
+
+    .table-wrap {
+      overflow-x: auto
+    }
+
+    .table-wrap table {
+      border-collapse: collapse;
+      text-align: center
+    }
+
+    .table-wrap tr:nth-child(2n-1) {}
+
+    .table-wrap td {
+      padding: .125rem;
+      border: 1px solid #8f7c00;
+      font-size: .8125rem
+    }
+
+    .card-list {
+      padding: 10px 0;
+      display: flex;
+      align-items: center;
+      max-width: 100%;
+      overflow-x: scroll;
+    }
+
+    .cardbox {
+      padding: 5px 5px 0;
+    }
+
+    .cardbox:hover .card {
+      transform: scale(1);
+    }
+  </style>
+  <script src="./lib/react.production.min.js"></script>
+  <script src="./lib/react-dom.production.min.js"></script>
+  <script src="./lib/crypto-js.js"></script>
+  <script src="./lib/tools.js"></script>
+  <script src="./lib/hooks.js"></script>
+  <script src="./lib/babel.min.js"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="text/babel">
+    let qs = tools.queryString();
+    let { useEffect, useMemo } = React;
+    const { useSetState } = hooks;
+    function useInputControl(initState) {
+      const [state, setState] = useSetState(initState);
+      const bind = key => ({
+        value: state[key],
+        onChange: v => setState({ [key]: v })
+      });
+      return [
+        state,
+        setState,
+        bind
+      ];
+    }
+
+    function Input({ value, onChange, ...others }) {
+      return (
+        <div class="form-group">
+          <input value={value}
+            onChange={e => onChange(e.target.value)}
+            class="form-control"
+            {...others}
+          />
+        </div>
+      );
+    }
+
+    function getHashString(serverSeed, clientSeed, nonce, round) {
+      const resultArr = [clientSeed, nonce, round];
+      const hmacSha256Result = String(CryptoJS.HmacSHA256(resultArr.join(":"), serverSeed));
+      return hmacSha256Result;
+    }
+
+    function getHashResultNumber(hashResult) {
+      let res = { dec: [], hex: [] };
+      for (let i = 0; i < hashResult.length; i += 2) {
+        let dext = hashResult[i] + hashResult[i + 1]
+        let hext = parseInt(dext, 16)
+        res.dec.push(dext)
+        res.hex.push(hext)
+      }
+      return res;
+    }
+
+    function getResult(resultList) {
+      const firstStep = resultList[0] / (Math.pow(256, 1));
+      const secondStep = resultList[1] / (Math.pow(256, 2));
+      const thirdStep = resultList[2] / (Math.pow(256, 3));
+      const fourthStep = resultList[3] / (Math.pow(256, 4));
+      const resultStep = (firstStep + secondStep + thirdStep + fourthStep) * 52;
+      const result = Math.floor(resultStep);
+      return {
+        clscList: [firstStep.toFixed(9), secondStep.toFixed(9), thirdStep.toFixed(9), fourthStep.toFixed(9)],
+        resultStep: resultStep.toFixed(9),
+        result
+      }
+    }
+    function createCardFram(card) {
+      const CARDS = " ,A,2,3,4,5,6,7,8,9,10,J,Q,K".split(",");
+      const SUITS = ["♠", "♥", "♣", "♦"];
+      let suitsIndex = (card & 240) / 16 - 10;
+      let suits = SUITS[suitsIndex];
+      let point = CARDS[card % 16];
+      let style = suitsIndex % 2 === 0 ? "black" : "red";
+      let classNames = ["cardbox", style];
+      return {
+        style,
+        suits,
+        point,
+      };
+    }
+
+    function Hilo() {
+      const [state, setState, bind] = useInputControl({
+        clientSeed: qs.c || '',
+        serverSeed: qs.s || '',
+        nonce: qs.n === undefined ? '' : parseInt(qs.n),
+        round: parseInt(qs.r) || 1,
+        curRound: 0,
+      });
+      const pokerList = [161, 180, 199, 218, 162, 205, 181, 200, 219, 163, 182, 220, 201, 177, 196, 215, 170, 178, 221, 197, 216, 171, 179, 198, 172, 217, 193, 212, 167, 186, 194, 173, 213, 168, 187, 195, 214, 188, 169, 209, 164, 183, 202, 210, 189, 165, 184, 203, 211, 166, 204, 185]
+      const cardLists = useMemo(() => {
+        return Array(Number(state.round)).fill(1).map((item, index) => {
+          const hmacSha256Result = getHashString(state.serverSeed, state.clientSeed, state.nonce, index);
+          const resultList = getHashResultNumber(hmacSha256Result);
+          return getResult(resultList.hex)
+        })
+      }, [state.clientSeed, state.serverSeed, state.nonce, state.round])
+
+      const curCard = useMemo(() => {
+        const hmacSha256Result = getHashString(state.serverSeed, state.clientSeed, state.nonce, state.curRound);
+        const resultList = getHashResultNumber(hmacSha256Result);
+        return [hmacSha256Result, resultList, getResult(resultList.hex)]
+      }, [state.clientSeed, state.serverSeed, state.nonce, state.curRound])
+
+      const hmacSha256Result = curCard[0];
+      const resultList = curCard[1];
+      const finalResult = curCard[2];
+      const cardResult = createCardFram(pokerList[finalResult?.result])
+
+      return (
+        <div className="main">
+          <h1 className="text-center pb-5">Hilo verify</h1>
+          <hr />
+          <h2 class="text-center">Input</h2>
+          <form className="py-5">
+            <div>Server Seed</div>
+            <Input placeholder="Server Seed" {...bind('serverSeed')} />
+            <div>Client Seed (Hashed)</div>
+            <Input placeholder="Client Seed (Hashed)" {...bind('clientSeed')} />
+            <div>Nonce</div>
+            <Input placeholder="Nonce" {...bind('nonce')} />
+            <div>Total Rounds</div>
+            <Input placeholder="Total Round" {...bind('round')} />
+            <div>Round</div>
+            <Input placeholder="Round" {...bind('curRound')} />
+          </form>
+          <h2 class="text-center">Output</h2>
+          <form className="py-5">
+            <div className="round-item">
+              <p className="t">Round: {state.curRound}</p>
+              <p>hmac_sha256(client_seed:nonce:round, server_seed)</p>
+              <p>{hmacSha256Result}</p>
+              <div className="table-wrap">
+                <table className="table table-sm table-bordered">
+                  <tbody>
+                    {[resultList.dec, resultList.hex].map((list, listIndex) => {
+                      return (
+                        <tr key={"tr-" + listIndex}>
+                          {list.map((item, index) => {
+                            return (
+                              <td key={"td-" + index}>{item}</td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <h6>Bytes to Number</h6>
+              <div class="form-group">
+                <div>{`(${resultList.hex[0]}, ${resultList.hex[1]}, ${resultList.hex[2]}, ${resultList.hex[3]}) -> [0, ... 4] = `}<span className="text-success">{finalResult.result}</span></div>
+                <div><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span> {finalResult.clscList[0]}&nbsp;&nbsp;&nbsp;&nbsp;</span><span>({resultList.hex[0]} / (256 ^ 1))</span></div>
+                <div><span>+&nbsp;&nbsp;&nbsp;&nbsp;</span><span>{finalResult.clscList[1]}&nbsp;&nbsp;&nbsp;&nbsp;</span><span>({resultList.hex[1]} / (256 ^ 2))</span></div>
+                <div><span>+&nbsp;&nbsp;&nbsp;&nbsp;</span><span>{finalResult.clscList[2]}&nbsp;&nbsp;&nbsp;&nbsp;</span><span>({resultList.hex[2]} / (256 ^ 3))</span></div>
+                <div><span>+&nbsp;&nbsp;&nbsp;&nbsp;</span><span>{finalResult.clscList[3]}&nbsp;&nbsp;&nbsp;&nbsp;</span><span>({resultList.hex[3]} / (256 ^ 4))</span></div>
+                <div><span>=&nbsp;&nbsp;&nbsp;&nbsp;</span><span>{finalResult.resultStep}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>(* 52)</div>
+                <div><span>=&nbsp;&nbsp;&nbsp;&nbsp;</span><span className="text-success">{finalResult.result}</span></div>
+              </div>
+              <h6>Round Result</h6>
+              <div class="table-wrap">
+                <table>
+                  <tbody>
+                    <tr><td>{finalResult?.result}</td></tr>
+                    <tr><td>{cardResult.suits}{cardResult.point}</td></tr>
+                    <tr><td>{pokerList[finalResult?.result]}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <br />
+              <div>Poker on the table</div>
+              <div class="table-wrap">
+                <table>
+                  <tbody>
+                    <tr>
+                      {pokerList.map((v, i) => <td>{i}</td>)}
+                    </tr>
+                    <tr>
+                      {pokerList.map((v, i) => {
+                        const item = createCardFram(v)
+                        return <td><span>{item.suits}{item.point}</span></td>
+                      })}
+                    </tr>
+                    <tr>
+                      {pokerList.map((v, i) => <td>{v}</td>)}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </form>
+          <h6>Final Result</h6>
+          <div className="card-list">
+            {
+              cardLists.map((card, idx) => {
+                const cardItem = createCardFram(pokerList[card?.result])
+                return <div className={`cardbox ${cardItem.style}`}>
+                  <div className="card" key={idx}>
+                    <div className="flower">{cardItem.suits}</div>
+                    <div className="point">{cardItem.point}</div>
+                  </div>
+                </div>
+              })
+            }
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<Hilo />, document.getElementById("app"));
+  </script>
+</body>
+
+</html>
