@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <link rel="manifest" href="./manifest.webmanifest">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Mines verify</title>
@@ -103,6 +104,10 @@
       <div class="form-group">
         <label>Nonce</label>
         <input :value="nonce" @change="nonce = $event.target.value" class="form-control" placeholder="Nonce">
+      </div>
+      <div class="form-group">
+        <label>Mines</label>
+        <input :value="mines" @change="mines = $event.target.value" class="form-control" placeholder="Mines">
       </div>
     </form>
     <hr>
